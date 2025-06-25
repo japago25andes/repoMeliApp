@@ -1,17 +1,19 @@
 # frozen_string_literal: true
 
 # ===================================================================
-# Script de Automatización para Mercado Libre
+# Script de Automatización para Mercado Libre (Versión Final con Evidencias)
 # ===================================================================
 
 require 'appium_lib'
-require 'set' # Requerimos 'Set' para un manejo de duplicados eficiente
+require 'set'
+require 'fileutils' # Requerimos 'fileutils' para la creación de directorios
 
 # --- Constantes de Configuración ---
 SEARCH_TERM = 'playstation 5'
 WAIT_TIMEOUT = 30
 SHORT_PAUSE = 2
 LONG_PAUSE = 5
+EVIDENCES_DIR = 'evidences'.freeze # Nombre de la carpeta para las capturas
 
 # Localizadores (textos y IDs a buscar en la UI)
 LOCATORS = {
@@ -32,7 +34,7 @@ LOCATORS = {
 #                            Funciones de Ayuda
 # ===================================================================
 
-# Función de scroll.
+# Función de scroll ÚNICA y ROBUSTA para todo el script.
 def perform_scroll_up(driver)
   puts '  -> Deslizando pantalla...'
   window_size = driver.window_rect
@@ -57,13 +59,24 @@ def find_with_scroll(driver, wait, type, value, max_swipes = 8)
       return element if element.displayed?
     rescue Selenium::WebDriver::Error::NoSuchElementError
       puts "  -> Elemento '#{value}' no visible. Buscando..."
-      perform_scroll_up(driver) # Llama a la única función de scroll correcta.
+      perform_scroll_up(driver)
       sleep 1.5
       attempts += 1
     end
   end
   raise "Elemento no encontrado después de #{max_swipes} intentos: '#{value}'"
 end
+
+# NUEVA FUNCIÓN para tomar y guardar capturas de pantalla.
+def take_screenshot(driver, step_counter, description)
+  # Limpiamos la descripción para que sea un nombre de archivo válido.
+  filename_desc = description.downcase.gsub(/[^a-z0-9\-_]+/, '_')
+  filepath = File.join(EVIDENCES_DIR, "#{step_counter.to_s.rjust(2, '0')}_#{filename_desc}.png")
+  
+  driver.screenshot(filepath)
+  puts "  -> Captura de pantalla guardada en: #{filepath}"
+end
+
 
 # ===================================================================
 #                        Flujo Principal del Script
@@ -83,12 +96,20 @@ def main
     appium_lib: { server_url: 'http://localhost:4723' }
   }
 
+  # --- Preparación del Entorno ---
+  # Se asegura de que la carpeta de evidencias exista.
+  FileUtils.mkdir_p(EVIDENCES_DIR) unless File.directory?(EVIDENCES_DIR)
+  step_counter = 0
+
   puts 'Iniciando driver de Appium...'
   driver = Appium::Driver.new(caps, true)
   driver.start_driver
   wait = Selenium::WebDriver::Wait.new(timeout: WAIT_TIMEOUT)
   puts 'Driver iniciado correctamente.'
   sleep LONG_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '0_app_iniciada')
+
 
   # --- [Pasos 1-7] Navegación y Filtros ---
   puts "\n[Paso 1] Ingresando como visitante..."
@@ -99,6 +120,8 @@ def main
     puts '-> No fue necesario ingresar como visitante.'
   end
   sleep SHORT_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '1_ingreso_visitante')
   
   puts "\n[Paso 2] Buscando '#{SEARCH_TERM}'..."
   wait.until { driver.find_element(:id, LOCATORS[:search_field]) }.click
@@ -107,28 +130,43 @@ def main
   driver.press_keycode(66)
   puts '-> Búsqueda enviada.'
   sleep LONG_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '2_resultados_busqueda')
 
   puts "\n[Paso 3] Abriendo menú de filtros..."
   wait.until { driver.find_element(:xpath, LOCATORS[:filters_button]) }.click
   puts '-> Esperando a que el modal de filtros se estabilice...'
   sleep 4
+  step_counter += 1
+  take_screenshot(driver, step_counter, '3_modal_filtros_abierto')
   
+  puts "\n[Paso 4] Aplicando filtro de Condición..."
   find_with_scroll(driver, wait, :xpath, LOCATORS[:condition_filter]).click
   wait.until { driver.find_element(:xpath, LOCATORS[:new_option]) }.click
   sleep SHORT_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '4_filtro_condicion_aplicado')
   
+  puts "\n[Paso 5] Aplicando filtro de Ubicación..."
   find_with_scroll(driver, wait, :xpath, LOCATORS[:pickup_filter]).click
   wait.until { driver.find_element(:xpath, LOCATORS[:location_option]) }.click
   sleep SHORT_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '5_filtro_ubicacion_aplicado')
   
+  puts "\n[Paso 6] Aplicando filtro de Ordenamiento..."
   find_with_scroll(driver, wait, :xpath, LOCATORS[:sort_filter]).click
   wait.until { driver.find_element(:xpath, LOCATORS[:price_option]) }.click
   sleep SHORT_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '6_filtro_ordenar_aplicado')
 
   puts "\n[Paso 7] Confirmando todos los filtros..."
   wait.until { driver.find_element(:xpath, LOCATORS[:apply_filters_button]) }.click
   puts '-> Filtros aplicados.'
   sleep LONG_PAUSE
+  step_counter += 1
+  take_screenshot(driver, step_counter, '7_resultados_finales_filtrados')
 
   # --- [Paso 8] Extracción de Resultados ---
   puts "\n[Paso 8] Recolectando los 5 primeros productos..."
@@ -138,18 +176,14 @@ def main
   attempts = 0
   max_scrolls = 4
 
-  # Bucle para recolectar hasta 5 productos.
   while results.size < 5 && attempts <= max_scrolls
     puts "-> Analizando pantalla. Productos recolectados: #{results.size}/5."
-    
-    # Guardamos cuántos productos.
     items_before_pass = processed_titles.size
     
     product_card_xpath = "//android.widget.RelativeLayout[.//android.widget.TextView[starts-with(@text, '$')]]"
     wait.until { !driver.find_elements(:xpath, product_card_xpath).empty? }
     product_cards = driver.find_elements(:xpath, product_card_xpath)
 
-    # 1. RECOLECTAMOS TODO LO VISIBLE
     product_cards.each do |card|
       break if results.size >= 5
       begin
@@ -169,18 +203,14 @@ def main
       end
     end
     
-    # Si ya tenemos 5 o más, salimos del bucle principal.
     break if results.size >= 5
     
     items_after_pass = processed_titles.size
-    
-    # Si después de revisar toda la pantalla, no añadimos ningún producto nuevo, significa que no hay más.
     if items_after_pass == items_before_pass
       puts "  -> No se encontraron más productos nuevos en la pantalla. Deteniendo búsqueda."
       break
     end
     
-    # Este bloque solo se ejecuta si, después de revisar todo, aún tenemos menos de 5 resultados.
     perform_scroll_up(driver)
     attempts += 1
     sleep 2
@@ -200,12 +230,14 @@ def main
 rescue StandardError => e
   puts "\n[ERROR CRÍTICO] El script falló: #{e.class} - #{e.message}"
   puts "Backtrace:\n#{e.backtrace.join("\n")}"
-  screenshot_path = "error_fatal_#{Time.now.to_i}.png"
-  driver.screenshot(screenshot_path)
-  puts "Captura de pantalla del error guardada en: #{screenshot_path}"
+  # La captura de error ahora también va a la carpeta de evidencias
+  error_filepath = File.join(EVIDENCES_DIR, "error_fatal_#{Time.now.to_i}.png")
+  driver.screenshot(error_filepath)
+  puts "Captura de pantalla del error guardada en: #{error_filepath}"
 ensure
   puts "\n[Final] Cerrando la sesión del driver."
   driver.driver_quit if driver
 end
 
+# --- Punto de Entrada del Script ---
 main
