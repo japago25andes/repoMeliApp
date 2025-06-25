@@ -18,6 +18,10 @@ El script ejecuta la siguiente secuencia de acciones de forma autónoma:
 8.  Imprime en la consola el título y el precio de cada uno de los 5 productos encontrados.
 9.  Cierra la sesión del driver de forma segura, incluso si ocurre un error.
 
+## ▶️ Demostración en Video
+
+[![Demostración del Script de Automatización](https://www.youtube.com/watch?v=o40GMQk-4zg8)](https://youtube.com/shorts/9y-IPjYHMF0?feature=shareeste)
+
 ## ✨ Características Principales
 
 -   **Robusto y Estable:** Diseñado para manejar las inestabilidades y cambios en la UI de la aplicación, utilizando esperas explícitas y una lógica de scroll resistente.
