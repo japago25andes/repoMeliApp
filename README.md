@@ -49,7 +49,7 @@ Para ejecutar este script, necesitarás tener el siguiente software instalado y 
 
 1.  **Clonar el Repositorio:**
     ```bash
-    git clone <URL_DEL_REPOSITORIO>
+    git clone [<URL_DEL_REPOSITORIO>](https://github.com/japago25andes/repoMeliApp.git)
     cd <NOMBRE_DEL_DIRECTORIO>
     ```
 
