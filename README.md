@@ -20,7 +20,7 @@ El script ejecuta la siguiente secuencia de acciones de forma autónoma:
 
 ## ▶️ Demostración en Video
 
-[![Demostración del Script de Automatización](https://www.youtube.com/watch?v=o40GMQk-4zg8)](https://youtube.com/shorts/9y-IPjYHMF0?feature=shareeste)
+**[▶️ Haz clic aquí para ver el script en acción en YouTube](https://youtube.com/shorts/9y-IPjYHMF0?feature=shareeste)**
 
 ## ✨ Características Principales
 
